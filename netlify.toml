@@ -1,0 +1,46 @@
+[build]
+  # Base directory for the build (where package.json is)
+  base = "particle-studio"
+  
+  # The directory where npm run build outputs files (relative to base)
+  publish = "dist"
+  
+  # The command to build the site
+  command = "npm install && npm run build"
+
+# Headers for WASM support and security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Enable CORS for WASM files from CDN
+    Access-Control-Allow-Origin = "*"
+    # Security headers
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "no-referrer-when-downgrade"
+
+[[headers]]
+  for = "/*.wasm"
+  [headers.values]
+    Content-Type = "application/wasm"
+    # Enable caching for WASM files
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    # Enable caching for JS files
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    # Enable caching for assets
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Redirect rules for SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

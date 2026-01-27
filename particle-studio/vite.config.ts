@@ -3,5 +3,35 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  server: { port: 5173, strictPort: true }
+  server: { 
+    port: 5173, 
+    strictPort: true,
+    headers: {
+      // Enable SharedArrayBuffer for FFmpeg WASM
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp"
+    }
+  },
+  // Optimize dependencies with WASM
+  optimizeDeps: {
+    exclude: ["@ffmpeg/ffmpeg", "@ffmpeg/util"]
+  },
+  // Build configuration for better chunking
+  build: {
+    target: "esnext",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor": ["react", "react-dom"],
+          "ffmpeg-vendor": ["@ffmpeg/ffmpeg", "@ffmpeg/util"],
+          "ui-vendor": [
+            "@radix-ui/react-select",
+            "@radix-ui/react-slider", 
+            "@radix-ui/react-switch",
+            "@radix-ui/react-tabs"
+          ]
+        }
+      }
+    }
+  }
 });
