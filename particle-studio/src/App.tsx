@@ -154,9 +154,6 @@ export default function App() {
           Tone.getDestination().connect(dest);
           const audioTracks = dest.stream.getAudioTracks();
           tracks.push(...audioTracks);
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/bc9028c4-9a3f-4ea7-83bc-f50090d47ee1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:156',message:'webm audio tracks attached',data:{audioTrackCount:audioTracks.length,totalTrackCount:tracks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H5'})}).catch(()=>{});
-          // #endregion agent log
         }
       } catch (audioErr) {
         console.warn("Could not capture audio:", audioErr);
@@ -257,7 +254,8 @@ export default function App() {
     const { recordingFps, gifDuration } = useStudioStore.getState().global;
     const fps = recordingFps ?? 30;
     const duration = gifDuration ?? 3;
-    const frameDurationMs = Math.round(1000 / fps);
+    // Use precise frame duration without rounding to maintain accurate timing
+    const frameDurationMs = 1000 / fps;
     const totalFrames = Math.max(1, Math.round(fps * duration));
 
     const offscreen = document.createElement("canvas");
@@ -348,22 +346,31 @@ export default function App() {
       useStudioStore.getState().global;
     const fps = recordingFps ?? 30;
 
-    // Determine duration: -1 means match audio length (use 60s as fallback)
+    // Determine duration: -1 means match audio length
     let durationMs: number;
     if (mp4Duration === -1) {
-      // Try to get audio duration - default to 60s if unknown
-      durationMs = 60000;
-      // Note: Getting actual audio duration would require loading it first
-      // For now, we'll use a reasonable default
+      // Get actual audio duration from the audio engine
+      const audioEngine = getAudioEngine();
+      const audioDurationSec = audioEngine.getDuration();
+      if (audioDurationSec > 0) {
+        durationMs = audioDurationSec * 1000;
+      } else {
+        // Fallback if audio not loaded
+        durationMs = 60000;
+        console.warn("Audio duration not available, using 60s default");
+      }
     } else {
       durationMs = (mp4Duration ?? 15) * 1000;
     }
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/bc9028c4-9a3f-4ea7-83bc-f50090d47ee1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:360',message:'mp4 duration computed',data:{mp4Duration,durationMs,hasAudioUrl:Boolean(audioUrl)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H6'})}).catch(()=>{});
-    // #endregion agent log
 
     if (recordingResetOnStart) {
       engineRef.current?.resetAll();
+    }
+    
+    // Reset and restart audio to sync with recording if audio is loaded
+    if (mp4Duration === -1 && audioUrl) {
+      const audioEngine = getAudioEngine();
+      audioEngine.restart();
     }
 
     setIsMp4Exporting(true);
