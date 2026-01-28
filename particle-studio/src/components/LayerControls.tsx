@@ -314,7 +314,14 @@ export function LayerControls({ selected }: { selected?: LayerConfig }) {
             <select
               className="select"
               value={layer.shape ?? "dot"}
-              onChange={(e) => setLayer(layer.id, { shape: e.target.value as ParticleShape })}
+              onChange={(e) => {
+                const newShape = e.target.value as ParticleShape;
+                // Update both shape and glyphPalette to keep them in sync
+                setLayer(layer.id, { 
+                  shape: newShape,
+                  glyphPalette: [{ shape: newShape, weight: 1.0 }]
+                });
+              }}
             >
               {shapeOptions.map((o) => (
                 <option key={o.value} value={o.value}>
