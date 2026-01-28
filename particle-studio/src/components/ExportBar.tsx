@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useStudioStore } from "../state/store";
+import { getAudioEngine } from "./AudioControls";
 import type { GifDuration, WebmDuration, Mp4Duration } from "../state/types";
 
 type ExportStatus = {
@@ -31,7 +32,15 @@ export function ExportBar() {
 
   const formatDuration = (d: number) => {
     if (d === 0) return "∞";
-    if (d === -1) return "🎵";
+    if (d === -1) {
+      // Show actual audio duration if available
+      const audioEngine = getAudioEngine();
+      const audioDuration = audioEngine.getDuration();
+      if (audioDuration > 0) {
+        return `🎵 ${Math.round(audioDuration)}s`;
+      }
+      return "🎵";
+    }
     if (d === 4.2) return "4.2s";
     if (d === 6.66) return "6.6s";
     return `${d}s`;
