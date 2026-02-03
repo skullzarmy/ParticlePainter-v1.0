@@ -108,8 +108,12 @@ export async function quickExportGif(
  */
 export async function quickExportWebM(
   frames: BufferedFrame[],
-  onProgress?: (p: QuickExportProgress) => void
+  options?: {
+    onProgress?: (p: QuickExportProgress) => void;
+    audioStream?: MediaStream | null;
+  }
 ): Promise<Blob> {
+  const { onProgress, audioStream } = options || {};
   if (frames.length === 0) {
     throw new Error("No frames in buffer to export");
   }
@@ -138,14 +142,33 @@ export async function quickExportWebM(
   }
 
   // Use MediaRecorder with canvas stream
-  const stream = canvas.captureStream(fps);
+  const canvasStream = canvas.captureStream(fps);
   
-  // Find supported codec
-  const codecs = [
-    "video/webm;codecs=vp9",
-    "video/webm;codecs=vp8",
-    "video/webm",
-  ];
+  // Combine video and audio tracks
+  const tracks = [...canvasStream.getTracks()];
+  const audioTracks = audioStream?.getAudioTracks() || [];
+  const hasAudio = audioTracks.length > 0;
+  
+  if (hasAudio) {
+    tracks.push(...audioTracks);
+  }
+  
+  const combinedStream = new MediaStream(tracks);
+  
+  // Find supported codec - try with opus audio codec first if audio is present
+  const codecs = hasAudio 
+    ? [
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp8,opus",
+        "video/webm;codecs=vp9",
+        "video/webm;codecs=vp8",
+        "video/webm",
+      ]
+    : [
+        "video/webm;codecs=vp9",
+        "video/webm;codecs=vp8",
+        "video/webm",
+      ];
   let mimeType = "video/webm";
   for (const codec of codecs) {
     if (MediaRecorder.isTypeSupported(codec)) {
@@ -154,7 +177,7 @@ export async function quickExportWebM(
     }
   }
 
-  const recorder = new MediaRecorder(stream, {
+  const recorder = new MediaRecorder(combinedStream, {
     mimeType,
     videoBitsPerSecond: 4_000_000,
   });

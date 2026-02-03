@@ -110,12 +110,39 @@ export function ExportBar() {
     }
     
     setIsQuickExporting(true);
+    let audioDestination: MediaStreamAudioDestinationNode | null = null;
+    
     try {
-      const blob = await quickExportWebM(frames);
+      // Get audio stream if audio is loaded and available
+      let audioStream: MediaStream | null = null;
+      if (global.audioUrl) {
+        try {
+          const audioEngine = getAudioEngine();
+          if (audioEngine.isLoaded()) {
+            const Tone = await import("tone");
+            const audioCtx = Tone.context.rawContext;
+            if (audioCtx && audioCtx instanceof AudioContext) {
+              const dest = audioCtx.createMediaStreamDestination();
+              // Connect Tone.js destination to capture destination
+              Tone.getDestination().connect(dest);
+              audioDestination = dest;
+              audioStream = dest.stream;
+            }
+          }
+        } catch (audioErr) {
+          console.warn("Could not capture audio for quick export:", audioErr);
+        }
+      }
+      
+      const blob = await quickExportWebM(frames, { audioStream });
       downloadBlob(blob, `particle-quick-${Date.now()}.webm`);
     } catch (err) {
       alert(`Quick export failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
+      // Clean up audio destination
+      if (audioDestination) {
+        audioDestination.disconnect();
+      }
       setIsQuickExporting(false);
     }
   };
