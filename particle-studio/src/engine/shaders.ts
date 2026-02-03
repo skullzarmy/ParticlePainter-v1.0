@@ -204,6 +204,19 @@ bool detectBorderCrossing(vec2 posPrev, vec2 posNow, float maskPrev, float maskN
   return wasOutside != isOutside;
 }
 
+// Helper: Check if a mask value is "inside" the boundary with small tolerance
+// to reduce grid artifacts from pure binary thresholding
+bool isInsideMask(float maskValue, vec2 pos) {
+  // Add tiny spatial dither to break up grid patterns
+  float dither = (fract(sin(dot(pos.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.001;
+  return maskValue >= (u_maskThreshold + dither);
+}
+
+bool isOutsideMask(float maskValue, vec2 pos) {
+  float dither = (fract(sin(dot(pos.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.001;
+  return maskValue < (u_maskThreshold + dither);
+}
+
 // ImpactMetrics struct definition (calculateImpact function defined after maskGradient)
 struct ImpactMetrics {
   float energy;        // Speed * mass
@@ -292,7 +305,10 @@ uint hash1(uvec2 p){
 }
 float rand(in vec2 x){
   uvec2 p = uvec2(floatBitsToUint(x.x), floatBitsToUint(x.y));
-  return float(hash1(p)) / 4294967295.0;
+  // Map to range [0.001, 0.999] to avoid pure black/white values
+  // This prevents noise artifacts at mask thresholds
+  float raw = float(hash1(p)) / 4294967295.0;
+  return 0.001 + raw * 0.998;
 }
 
 vec2 rot(vec2 p, float a){
@@ -513,7 +529,7 @@ vec2 pickSpawnByRegion(vec2 seed, int region) {
     vec2 uv = fract(seed);
     for(int i = 0; i < 24; i++) {
       float v = maskSample(uv);
-      if(v >= u_maskThreshold) return uv;
+      if(isInsideMask(v, uv)) return uv;
       uv = fract(uv * 1.37 + vec2(0.123, 0.456) + float(i) * 0.071);
     }
     return uv;
@@ -558,7 +574,7 @@ vec2 pickSpawn(vec2 seed){
       if(isSpawnZone(testUv)){
         // Also check mask
         float v = maskSample(testUv);
-        if(v >= u_maskThreshold) return testUv;
+        if(isInsideMask(v, testUv)) return testUv;
       }
       uv = fract(uv*1.37 + vec2(0.123, 0.456) + float(i)*0.071);
     }
@@ -568,7 +584,7 @@ vec2 pickSpawn(vec2 seed){
       vec2 flowInfo = getFlowInfo(testUv);
       if(flowInfo.x > 0.1){ // has flow
         float v = maskSample(testUv);
-        if(v >= u_maskThreshold) return testUv;
+        if(isInsideMask(v, testUv)) return testUv;
       }
     }
   }
@@ -580,13 +596,14 @@ vec2 pickSpawn(vec2 seed){
   if(u_spawnRegion < 5 || u_spawnRegion > 8) {
     if(u_spawnRegion != 11 && u_spawnRegion != 12 && u_spawnRegion != 13) {
       // Check mask for non-mask-specific, non-off-canvas spawns
-      float v = maskSample(clamp(spawnPos, 0.0, 1.0));
-      if(v < u_maskThreshold) {
+      vec2 clampedSpawn = clamp(spawnPos, 0.0, 1.0);
+      float v = maskSample(clampedSpawn);
+      if(isOutsideMask(v, clampedSpawn)) {
         // Fall back to random spawn within mask
         uv = fract(seed);
         for(int i = 0; i < 12; i++) {
           v = maskSample(uv);
-          if(v >= u_maskThreshold) return uv;
+          if(isInsideMask(v, uv)) return uv;
           uv = fract(uv * 1.37 + vec2(0.123, 0.456) + float(i) * 0.071);
         }
       }
@@ -933,7 +950,7 @@ void main(){
   vec2 posClamped = clamp(pos, 0.001, 0.999);
   float maskVal = maskSample(posClamped);
   float prevMaskVal = maskSample(prevPos);
-  bool outsideMask = maskVal < u_maskThreshold;
+  bool outsideMask = isOutsideMask(maskVal, posClamped);
   
   // Mask mode: 0=ignore, 1=visibility, 2=collision, 3=accumulate
   // For ignore (0) and visibility (1), mask doesn't affect physics
@@ -1064,11 +1081,11 @@ void main(){
             // Try stepping along normal to find valid position
             for(int i = 0; i < 8; i++){
               pos += normal * 0.01;
-              if(maskSample(pos) >= u_maskThreshold) break;
+              if(isInsideMask(maskSample(pos), pos)) break;
             }
             
             // If still outside, respawn
-            if(maskSample(pos) < u_maskThreshold){
+            if(isOutsideMask(maskSample(pos), pos)){
               die = 1.0;
             }
           }
@@ -1085,7 +1102,8 @@ void main(){
       }
       
       // Final check - if still outside valid area and in collision mode, respawn
-      if(maskAffectsPhysics && u_maskMode == 2 && maskSample(clamp(pos, 0.0, 1.0)) < u_maskThreshold){
+      vec2 finalCheckPos = clamp(pos, 0.0, 1.0);
+      if(maskAffectsPhysics && u_maskMode == 2 && isOutsideMask(maskSample(finalCheckPos), finalCheckPos)){
         die = 1.0;
       }
     } else {

@@ -667,6 +667,7 @@ export function LeftPanel() {
 
                   <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                     <input
+                      key={layer.id}
                       type="file"
                       accept="image/*"
                       style={{ flex: 1 }}

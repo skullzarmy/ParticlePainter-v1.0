@@ -135,6 +135,7 @@ export function LayerControls({ selected }: { selected?: LayerConfig }) {
         <div className="row">
           <div>
             <input
+              key={layer.id}
               type="file"
               accept="image/*"
               onChange={async (e) => {
