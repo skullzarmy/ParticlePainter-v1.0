@@ -130,7 +130,7 @@ export function ExportBar() {
         }
       }
       
-      const blob = await quickExportWebM(frames, undefined, audioStream);
+      const blob = await quickExportWebM(frames, { audioStream });
       downloadBlob(blob, `particle-quick-${Date.now()}.webm`);
     } catch (err) {
       alert(`Quick export failed: ${err instanceof Error ? err.message : String(err)}`);

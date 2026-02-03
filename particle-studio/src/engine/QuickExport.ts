@@ -108,9 +108,12 @@ export async function quickExportGif(
  */
 export async function quickExportWebM(
   frames: BufferedFrame[],
-  onProgress?: (p: QuickExportProgress) => void,
-  audioStream?: MediaStream | null
+  options?: {
+    onProgress?: (p: QuickExportProgress) => void;
+    audioStream?: MediaStream | null;
+  }
 ): Promise<Blob> {
+  const { onProgress, audioStream } = options || {};
   if (frames.length === 0) {
     throw new Error("No frames in buffer to export");
   }
