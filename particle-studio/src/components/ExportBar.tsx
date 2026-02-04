@@ -317,6 +317,20 @@ export function ExportBar() {
         </button>
       </div>
 
+      {/* TEIA Mint */}
+      <div className="exportGroup">
+        <button
+          className="btn btnSm"
+          onClick={() => {
+            window.open("https://teia.art/mint", "_blank", "noopener,noreferrer");
+          }}
+          disabled={isExporting}
+          title="Open TEIA to mint NFT on Tezos blockchain"
+        >
+          🎨 TEIA
+        </button>
+      </div>
+
       {/* Separator */}
       <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.1)", margin: "0 8px" }} />
 
