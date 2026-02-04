@@ -135,11 +135,19 @@ export function ExportBar() {
             const Tone = await import("tone");
             const audioCtx = Tone.context.rawContext;
             if (audioCtx && audioCtx instanceof AudioContext) {
-              const dest = audioCtx.createMediaStreamDestination();
+              audioDestination = audioCtx.createMediaStreamDestination();
+              
               // Connect Tone.js destination to capture destination
-              Tone.getDestination().connect(dest);
-              audioDestination = dest;
-              audioStream = dest.stream;
+              Tone.getDestination().connect(audioDestination);
+              
+              // If audio is not playing, start it for the export
+              const wasPlaying = audioEngine.isPlaying();
+              if (!wasPlaying) {
+                audioEngine.play();
+              }
+              
+              audioStream = audioDestination.stream;
+              console.log("Audio stream connected for quick export");
             }
           }
         } catch (audioErr) {
@@ -154,7 +162,12 @@ export function ExportBar() {
     } finally {
       // Clean up audio destination
       if (audioDestination) {
-        audioDestination.disconnect();
+        try {
+          const Tone = await import("tone");
+          Tone.getDestination().disconnect(audioDestination);
+        } catch (err) {
+          console.warn("Error disconnecting audio destination:", err);
+        }
       }
       setIsQuickExporting(false);
     }
