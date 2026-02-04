@@ -19,13 +19,25 @@ export function WalletConnect() {
       // Lazy load wallet service
       const { walletService } = await import("../services/walletService");
       
+      console.log("[WalletConnect] Starting wallet connection...");
+      
       const { address, balance } = await walletService.connectWallet();
       
-      // Sign a message to prove ownership
-      const message = `Particle Painter - Authentication\nTimestamp: ${Date.now()}`;
-      await walletService.signMessage(message);
+      console.log("[WalletConnect] Wallet connected, address:", address);
+      
+      // Note: The authentication sign message has been removed from the initial connection flow
+      // because it was causing UNKNOWN_ERROR issues due to timing/race conditions with
+      // the Beacon SDK transport layer initialization. Message signing should be done
+      // only when specifically needed (e.g., during minting or other sensitive operations)
+      // after the connection has fully stabilized.
+      
+      // If authentication signing is required, it should be done in a separate user action
+      // after the connection is confirmed, not immediately after connectWallet() returns.
+      // The walletService now includes a stabilization delay and connection readiness check
+      // that can be used for future signing operations.
       
       setWalletConnected(true, address, balance);
+      console.log("[WalletConnect] Connection complete!");
     } catch (err) {
       console.error("Wallet connection failed:", err);
       setError(err instanceof Error ? err.message : "Failed to connect wallet");
