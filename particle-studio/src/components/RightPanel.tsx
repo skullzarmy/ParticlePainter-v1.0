@@ -218,14 +218,14 @@ export function RightPanel() {
                 label="Point size"
                 value={layer.pointSize}
                 min={0.5}
-                max={32}
+                max={64}
                 step={0.5}
                 onChange={(v) => setLayer(layer.id, { pointSize: v })}
               />
               <SliderRow
                 label="Size min offset"
                 value={layer.pointSizeMin ?? 0}
-                min={-3}
+                min={-6}
                 max={0}
                 step={0.1}
                 onChange={(v) => setLayer(layer.id, { pointSizeMin: v })}
@@ -234,7 +234,7 @@ export function RightPanel() {
                 label="Size max offset"
                 value={layer.pointSizeMax ?? 0}
                 min={0}
-                max={3}
+                max={6}
                 step={0.1}
                 onChange={(v) => setLayer(layer.id, { pointSizeMax: v })}
               />
@@ -242,7 +242,7 @@ export function RightPanel() {
                 label="Size jitter"
                 value={layer.sizeJitter ?? 0}
                 min={0}
-                max={1}
+                max={2}
                 step={0.01}
                 onChange={(v) => setLayer(layer.id, { sizeJitter: v })}
               />
@@ -263,6 +263,14 @@ export function RightPanel() {
                 onChange={(v) => setLayer(layer.id, { brightness: v })}
               />
               <SliderRow
+                label="Brightness jitter"
+                value={layer.brightnessJitter ?? 0}
+                min={0}
+                max={2}
+                step={0.01}
+                onChange={(v) => setLayer(layer.id, { brightnessJitter: v })}
+              />
+              <SliderRow
                 label="Dither"
                 value={layer.dither}
                 min={0}
@@ -274,7 +282,7 @@ export function RightPanel() {
                 label="Rotation jitter"
                 value={layer.glyphRotationJitter ?? 0}
                 min={0}
-                max={180}
+                max={360}
                 step={1}
                 onChange={(v) => setLayer(layer.id, { glyphRotationJitter: v })}
               />
@@ -282,9 +290,17 @@ export function RightPanel() {
                 label="Scale jitter"
                 value={layer.glyphScaleJitter ?? 0}
                 min={0}
-                max={1}
+                max={2}
                 step={0.01}
                 onChange={(v) => setLayer(layer.id, { glyphScaleJitter: v })}
+              />
+              <SliderRow
+                label="Color jitter"
+                value={layer.colorJitter ?? 0}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={(v) => setLayer(layer.id, { colorJitter: v })}
               />
             </CollapsibleSection>
 

@@ -84,7 +84,12 @@ export type MovementPattern =
   | "figure8"        // Figure-8 pattern
   | "brownian"       // Random walk (enhanced jitter)
   | "followCurl"     // Current curl noise behavior
-  | "vortex";        // Spiral vortex (like water draining)
+  | "vortex"         // Spiral vortex (like water draining)
+  | "evade"          // Particles flee from each other
+  | "clusters";      // Particles bind together in clusters
+
+// Cardinal direction for wave movement
+export type WaveCardinalDirection = "north" | "south" | "east" | "west";
 
 export type MovementConfig = {
   pattern: MovementPattern;
@@ -103,10 +108,22 @@ export type MovementConfig = {
   waveAmplitude: number;     // Wave height (0-0.5)
   waveFrequency: number;     // Wave cycles (0.5-5)
   waveDirection: number;     // Direction wave travels (0-360)
+  waveCardinalDirection: WaveCardinalDirection; // Cardinal direction for wave movement
   
   // Vortex parameters
   vortexStrength: number;    // Rotational pull (0-1)
   vortexInward: number;      // Inward pull (0-1)
+  
+  // Evade parameters
+  evadeStrength: number;     // How strongly particles flee each other (0-1)
+  evadeRadius: number;       // Detection radius for nearby particles (0-0.5)
+  
+  // Cluster parameters
+  clusterStrength: number;   // Bond strength (0-1)
+  clusterBreakThreshold: number; // Force required to break bonds (0-1)
+  clusterBySize: boolean;    // Only cluster particles of same size
+  clusterByColor: boolean;   // Only cluster particles of same color
+  clusterByBrightness: boolean; // Only cluster particles of same brightness
 };
 
 // ============================================
@@ -168,6 +185,50 @@ export type MaskTransform = {
 export type FlowPoint = { x: number; y: number };
 export type FlowPath = FlowPoint[];
 
+// ============================================
+// ATTRACTION POINT SYSTEM
+// ============================================
+
+export type AttractionEffect = 
+  | "none"           // Pass through without effect
+  | "despawn"        // Remove particle at attraction point
+  | "orbit"          // Particle enters orbit around point
+  | "concentrate"    // Particles concentrate and slow down
+  | "transform"      // Transform particle properties
+  | "passToNext";    // Pass particle to next attraction point
+
+export type AttractionType = 
+  | "direct"         // Straight line attraction
+  | "spiral"         // Spiral toward point
+  | "blackhole"      // Strong inverse-square attraction
+  | "pulsing"        // Attraction pulses on/off
+  | "magnetic";      // Magnetic-style field lines
+
+export type AttractionPoint = {
+  id: string;
+  enabled: boolean;
+  position: { x: number; y: number };  // normalized 0..1
+  strength: number;       // -1..1 (negative = repulsion)
+  falloff: number;        // 0..2 (how fast attraction weakens)
+  type: AttractionType;
+  effect: AttractionEffect;
+  transformColor?: string;  // Color to transform to (for transform effect)
+  nextPointId?: string;     // Target for passToNext effect
+  pulseFrequency?: number;  // For pulsing type (0.1-5 Hz)
+};
+
+// ============================================
+// EXTENDED BOUNDARY MODES
+// ============================================
+
+export type BoundaryMode = 
+  | "respawn"        // Respawn inside canvas
+  | "bounce"         // Bounce off boundaries
+  | "wrap"           // Wrap around to opposite side
+  | "stick"          // Stick to boundary
+  | "destroy"        // Remove particle at boundary
+  | "slowBounce";    // Gradually slow down and bounce
+
 export type LayerConfig = {
   id: string;
   name: string;
@@ -204,6 +265,7 @@ export type LayerConfig = {
   maskStickiness: number; // 0-1, how much particles stick on collision
   maskMagnetism: number; // -1 to 1, negative repels, positive attracts
   maskMagnetismRadius: number; // 0-1, distance of magnetic effect
+  showMask: boolean; // Display mask overlay in red when active
 
   // flow paths (for directed flow layers)
   flowPaths: FlowPath[];
@@ -213,23 +275,27 @@ export type LayerConfig = {
   drag: number; // 0..0.5
   jitter: number; // 0..1 (scaled internally by type)
   curl: number; // 0..1 (flow field strength)
-  attract: number; // 0..0.5 (attraction to point)
+  attract: number; // 0..0.5 (attraction to point) - LEGACY, use attractionPoints
   attractFalloff: number; // 0..2 (how fast attraction weakens with distance, 0=constant, 2=inverse square)
-  attractPoint: { x: number; y: number }; // normalized 0..1
+  attractPoint: { x: number; y: number }; // normalized 0..1 - LEGACY, use attractionPoints
+  attractionPoints: AttractionPoint[]; // Multiple attraction points system
   windAngle: number; // 0..360 degrees (uniform directional force)
   windStrength: number; // 0..0.5 (uniform push strength)
   speed: number; // velocity scale
-  boundaryMode: "respawn" | "bounce" | "wrap";
+  massJitter: number; // 0..1 (randomness in particle mass affecting gravity/forces)
+  boundaryMode: BoundaryMode;
   boundaryBounce: number; // 0..1
 
   // render
-  pointSize: number; // px
-  pointSizeMin: number; // offset from pointSize for min (-3 to 0)
-  pointSizeMax: number; // offset from pointSize for max (0 to +3)
-  sizeJitter: number; // 0..1 (randomness in particle size)
+  pointSize: number; // px (0.5 to 64)
+  pointSizeMin: number; // offset from pointSize for min (-6 to 0)
+  pointSizeMax: number; // offset from pointSize for max (0 to +6)
+  sizeJitter: number; // 0..2 (randomness in particle size - doubled range)
   brightness: number; // 0..2
+  brightnessJitter: number; // 0..2 (randomness in particle brightness)
   dither: number; // 0..1
   trailLength: number; // 0..1 (how much velocity affects shape stretch)
+  colorJitter: number; // 0..1 (randomness in particle color hue)
 
   // color options
   colorMode: ColorMode;
@@ -336,9 +402,12 @@ export type GlobalConfig = {
   audioUrl?: string;
   audioPlaying: boolean;
   audioVolume: number; // 0-1
+  audioGain: number; // 0-3 (multiplier for audio reactivity)
   // Rolling buffer settings for quick export
   bufferEnabled: boolean;
   bufferDuration: number; // seconds (2-10)
   bufferFps: number; // frames per second (15-30)
   bufferQuality: BufferQuality;
+  // Welcome popup
+  showWelcome: boolean; // Show welcome popup on first load
 };

@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { 
   GlobalConfig, LayerConfig, ParticleType, ParticleShape, LayerKind, MaskTransform, 
   MaterialPreset, GlyphPaletteEntry, SpawnConfig, MovementConfig, BorderEffectConfig,
-  ColorRegionEffect
+  ColorRegionEffect, AttractionPoint, BoundaryMode, WaveCardinalDirection
 } from "./types";
 
 // Default material presets
@@ -96,8 +96,18 @@ const defaultMovementConfig = (type: ParticleType): MovementConfig => ({
   waveAmplitude: 0.1,
   waveFrequency: 2,
   waveDirection: 0,
+  waveCardinalDirection: "east" as WaveCardinalDirection,
   vortexStrength: 0.5,
-  vortexInward: 0.2
+  vortexInward: 0.2,
+  // Evade parameters
+  evadeStrength: 0.3,
+  evadeRadius: 0.1,
+  // Cluster parameters
+  clusterStrength: 0.5,
+  clusterBreakThreshold: 0.7,
+  clusterBySize: false,
+  clusterByColor: false,
+  clusterByBrightness: false
 });
 
 // Default border effect config
@@ -143,6 +153,7 @@ const defaultLayer = (name: string, type: ParticleType, particleCount: number, k
   maskStickiness: 0.3,
   maskMagnetism: 0,
   maskMagnetismRadius: 0.1,
+  showMask: false, // Don't show mask overlay by default
   
   // flow paths (for directed flow layers)
   flowPaths: [],
@@ -155,20 +166,24 @@ const defaultLayer = (name: string, type: ParticleType, particleCount: number, k
   attract: type === "sand" ? 0.0 : type === "ink" ? 0.1 : 0.05,
   attractFalloff: 1.0, // linear falloff by default
   attractPoint: { x: 0.5, y: 0.5 },
+  attractionPoints: [] as AttractionPoint[], // Multiple attraction points (empty by default)
   windAngle: type === "sand" ? 270 : type === "sparks" ? 90 : 0, // sand falls down, sparks rise
   windStrength: 0.0, // off by default
   speed: type === "sparks" ? 1.2 : type === "sand" ? 0.9 : 1.0,
-  boundaryMode: "bounce",
+  massJitter: 0, // No mass jitter by default
+  boundaryMode: "bounce" as BoundaryMode,
   boundaryBounce: type === "sand" ? 0.2 : type === "sparks" ? 0.6 : 0.4,
   
   // render
   pointSize: DEFAULT_POINT_SIZE, // 10 by default for visibility
-  pointSizeMin: 0, // offset from base size (0 to -3)
-  pointSizeMax: 0, // offset from base size (0 to +3)
-  sizeJitter: 0, // 0 by default per user request
+  pointSizeMin: 0, // offset from base size (0 to -6)
+  pointSizeMax: 0, // offset from base size (0 to +6)
+  sizeJitter: 0, // 0 by default per user request (now 0..2 range)
   brightness: type === "sparks" ? 1.4 : 1.0,
+  brightnessJitter: 0, // No brightness jitter by default (0..2 range)
   dither: 0, // 0 by default per user request
   trailLength: 0, // 0 by default per user request
+  colorJitter: 0, // No color jitter by default
   
   // color options
   colorMode: "single",
@@ -288,11 +303,14 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     audioUrl: undefined,
     audioPlaying: false,
     audioVolume: 0.8,
+    audioGain: 1.0, // Default gain multiplier for audio reactivity
     // Rolling buffer defaults (disabled by default to save resources)
     bufferEnabled: false,
     bufferDuration: 5,
     bufferFps: 24,
-    bufferQuality: "low"
+    bufferQuality: "low",
+    // Welcome popup
+    showWelcome: true // Show welcome popup on first load
   },
   layers: [],
   selectedLayerId: "",

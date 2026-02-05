@@ -4,11 +4,12 @@ export function SwitchRow(props: {
   label: string;
   checked: boolean;
   onCheckedChange: (b: boolean) => void;
+  tooltip?: string;
 }) {
-  const { label, checked, onCheckedChange } = props;
+  const { label, checked, onCheckedChange, tooltip } = props;
 
   return (
-    <div className="row">
+    <div className="row" title={tooltip}>
       <div className="small">{label}</div>
       <Switch.Root
         checked={checked}
