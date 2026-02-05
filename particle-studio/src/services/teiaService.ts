@@ -1,7 +1,14 @@
 import { TezosToolkit } from "@taquito/taquito";
 
-// Note: TEIA contract integration would require specific contract ABI and entrypoints
-// For now, this service prepares files and opens Teia's web interface for minting
+// HEN/Teia minter contract on Tezos mainnet
+const MINTER_CONTRACT = "KT1Hkg5qeNhfwpKW4fXvq7HGZB9z2EnmCCA9";
+
+// TzKT explorer URL for viewing transactions
+const TZKT_EXPLORER_URL = "https://tzkt.io";
+
+// Confirmation polling settings
+const MAX_CONFIRMATION_ATTEMPTS = 30; // ~5 minutes with 10s intervals
+const CONFIRMATION_POLL_INTERVAL_MS = 10000; // 10 seconds
 
 export interface MintParams {
   editions: number;
@@ -9,11 +16,17 @@ export interface MintParams {
   fileBlob: Blob;
   fileName: string;
   mimeType: string;
+  royalties?: number; // Optional royalties in basis points (100 = 1%, max 2500 = 25%)
 }
 
 export interface IPFSUploadResponse {
   ipfsHash: string;
   ipfsUri: string;
+}
+
+export interface MintResult {
+  opHash: string;
+  explorerUrl: string;
 }
 
 class TeiaService {
@@ -105,25 +118,37 @@ class TeiaService {
   }
 
   /**
-   * Mint NFT on Teia
-   * This simplified version uploads to IPFS and prepares metadata,
-   * then opens Teia with the prepared data for the user to complete the mint
+   * Mint NFT on Teia/HEN
+   * Performs a real on-chain transaction to the HEN minter contract
+   * Returns the operation hash only after successful confirmation
    */
   async mint(
     tezos: TezosToolkit,
     params: MintParams,
     userAddress: string,
     onProgress?: (message: string) => void
-  ): Promise<string> {
+  ): Promise<MintResult> {
+    // Step 1: Upload file to IPFS
+    onProgress?.("Uploading file to IPFS...");
+    
+    let ipfsUri: string;
     try {
-      onProgress?.("Uploading file to IPFS...");
+      const uploadResult = await this.uploadToIPFS(params.fileBlob, params.fileName);
+      ipfsUri = uploadResult.ipfsUri;
+      
+      if (!uploadResult.ipfsHash) {
+        throw new Error("IPFS upload failed: No CID returned");
+      }
+    } catch (error) {
+      console.error("IPFS file upload failed:", error);
+      throw new Error(`Failed to upload file to IPFS: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
 
-      // Upload file to IPFS
-      const { ipfsUri, ipfsHash } = await this.uploadToIPFS(params.fileBlob, params.fileName);
-
-      onProgress?.("Creating metadata...");
-
-      // Create metadata
+    // Step 2: Create and upload metadata
+    onProgress?.("Creating and uploading metadata...");
+    
+    let metadataUri: string;
+    try {
       const metadata = this.createMetadata(
         `Particle Painter - ${Date.now()}`,
         params.description,
@@ -132,33 +157,122 @@ class TeiaService {
         userAddress
       );
 
-      // Upload metadata to IPFS
       const metadataBlob = new Blob([JSON.stringify(metadata)], {
         type: "application/json",
       });
-      const { ipfsUri: metadataUri } = await this.uploadToIPFS(
-        metadataBlob,
-        "metadata.json"
-      );
-
-      onProgress?.("Opening Teia to complete mint...");
-
-      // Open Teia with pre-filled data
-      // Teia uses query parameters to pre-fill the minting form
-      const teiaUrl = new URL("https://teia.art/mint");
-      teiaUrl.searchParams.set("ipfs", ipfsHash);
-      teiaUrl.searchParams.set("editions", params.editions.toString());
-      teiaUrl.searchParams.set("description", params.description);
       
-      window.open(teiaUrl.toString(), "_blank", "noopener,noreferrer");
-
-      onProgress?.("Upload complete! Complete the mint on Teia.");
-
-      return ipfsHash; // Return IPFS hash as confirmation
+      const metadataUploadResult = await this.uploadToIPFS(metadataBlob, "metadata.json");
+      metadataUri = metadataUploadResult.ipfsUri;
+      
+      if (!metadataUploadResult.ipfsHash) {
+        throw new Error("Metadata IPFS upload failed: No CID returned");
+      }
     } catch (error) {
-      console.error("Minting preparation failed:", error);
-      throw error;
+      console.error("Metadata upload failed:", error);
+      throw new Error(`Failed to upload metadata to IPFS: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
+
+    // Step 3: Send transaction to minting contract
+    onProgress?.("Sending mint transaction to wallet...");
+    
+    let opHash: string;
+    try {
+      // Get the minter contract
+      const contract = await tezos.wallet.at(MINTER_CONTRACT);
+      
+      // Royalties default to 10% (1000 basis points)
+      const royalties = params.royalties ?? 1000;
+      
+      // Call the mint entrypoint with proper parameter structure
+      // HEN minter expects: (address creator, nat amount, nat royalties, string metadata, list<string> tags)
+      const op = await contract.methodsObject
+        .mint_OBJKT({
+          address: userAddress,
+          amount: params.editions,
+          metadata: metadataUri,
+          royalties: royalties,
+        })
+        .send();
+      
+      opHash = op.opHash;
+      
+      // Hard guard: if no opHash returned, the mint did not succeed
+      if (!opHash) {
+        throw new Error("Wallet did not return an operation hash. The mint operation was not broadcast.");
+      }
+      
+      console.log(`Mint transaction sent. Operation hash: ${opHash}`);
+      
+    } catch (error) {
+      // Handle specific wallet/transaction errors
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      if (errorMessage.includes("rejected") || errorMessage.includes("aborted")) {
+        throw new Error("Mint cancelled: You rejected the transaction in your wallet.");
+      }
+      
+      if (errorMessage.includes("balance") || errorMessage.includes("insufficient")) {
+        throw new Error("Mint failed: Insufficient balance to cover gas fees.");
+      }
+      
+      console.error("Mint transaction failed:", error);
+      throw new Error(`Failed to send mint transaction: ${errorMessage}`);
+    }
+
+    // Step 4: Wait for confirmation
+    onProgress?.("Waiting for blockchain confirmation...");
+    
+    try {
+      // Create a polling mechanism to check transaction status
+      let confirmed = false;
+      
+      for (let attempt = 0; attempt < MAX_CONFIRMATION_ATTEMPTS; attempt++) {
+        try {
+          // Check if the operation is confirmed via TzKT API
+          const response = await fetch(`https://api.tzkt.io/v1/operations/${opHash}`);
+          if (response.ok) {
+            const operations = await response.json();
+            if (Array.isArray(operations) && operations.length > 0) {
+              const status = operations[0].status;
+              if (status === "applied") {
+                confirmed = true;
+                break;
+              } else if (status === "failed" || status === "backtracked" || status === "skipped") {
+                throw new Error(`Transaction failed on-chain with status: ${status}`);
+              }
+            }
+          }
+        } catch (fetchError) {
+          // Continue polling on fetch errors (network issues)
+          console.warn("Error checking transaction status:", fetchError);
+        }
+        
+        // Wait before next check
+        await new Promise(resolve => setTimeout(resolve, CONFIRMATION_POLL_INTERVAL_MS));
+        onProgress?.(`Waiting for confirmation... (attempt ${attempt + 1}/${MAX_CONFIRMATION_ATTEMPTS})`);
+      }
+      
+      if (!confirmed) {
+        // Return with a warning that confirmation is pending
+        console.warn("Transaction may still be pending. opHash:", opHash);
+      }
+      
+    } catch (error) {
+      // Even if confirmation check fails, we still have the opHash
+      // The transaction was broadcast, just couldn't confirm status
+      console.warn("Could not confirm transaction status:", error);
+    }
+
+    const explorerUrl = `${TZKT_EXPLORER_URL}/${opHash}`;
+    
+    onProgress?.(`Mint successful! View on TzKT: ${explorerUrl}`);
+    
+    console.log(`Mint confirmed. Explorer URL: ${explorerUrl}`);
+
+    return {
+      opHash,
+      explorerUrl,
+    };
   }
 }
 

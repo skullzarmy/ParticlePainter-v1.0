@@ -7,6 +7,11 @@ interface MintModalProps {
   onClose: () => void;
 }
 
+interface MintSuccess {
+  opHash: string;
+  explorerUrl: string;
+}
+
 export function MintModal({ onClose }: MintModalProps) {
   const [editions, setEditions] = useState(1);
   const [description, setDescription] = useState("");
@@ -14,7 +19,7 @@ export function MintModal({ onClose }: MintModalProps) {
   const [isMinting, setIsMinting] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [success, setSuccess] = useState<MintSuccess | null>(null);
 
   const global = useStudioStore((s) => s.global);
   const walletAddress = useStudioStore((s) => s.walletAddress);
@@ -86,8 +91,8 @@ export function MintModal({ onClose }: MintModalProps) {
         throw new Error("Tezos toolkit not initialized");
       }
 
-      // Mint on Teia
-      const opHash = await teiaService.mint(
+      // Mint on Teia - returns MintResult with opHash and explorerUrl
+      const mintResult = await teiaService.mint(
         tezos,
         {
           editions,
@@ -100,7 +105,15 @@ export function MintModal({ onClose }: MintModalProps) {
         (msg) => setProgress(msg)
       );
 
-      setSuccess(`Successfully minted! Transaction: ${opHash}`);
+      // Hard guard: Only show success if we have a valid opHash
+      if (!mintResult.opHash) {
+        throw new Error("Mint did not return an operation hash. The transaction was not broadcast.");
+      }
+
+      setSuccess({
+        opHash: mintResult.opHash,
+        explorerUrl: mintResult.explorerUrl,
+      });
       setProgress("");
     } catch (err) {
       console.error("Minting failed:", err);
@@ -243,7 +256,23 @@ export function MintModal({ onClose }: MintModalProps) {
                   wordBreak: "break-word",
                 }}
               >
-                {success}
+                <div style={{ marginBottom: 8, fontWeight: 600 }}>
+                  ✓ Mint Successful!
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  Operation Hash: <code style={{ fontSize: 11 }}>{success.opHash}</code>
+                </div>
+                <a
+                  href={success.explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: "#22c55e",
+                    textDecoration: "underline",
+                  }}
+                >
+                  View on TzKT Explorer →
+                </a>
               </div>
               <button className="btn btnPrimary" onClick={onClose} style={{ width: "100%" }}>
                 Close
