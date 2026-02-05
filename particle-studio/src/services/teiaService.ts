@@ -120,14 +120,12 @@ class TeiaService {
   /**
    * Convert string to hex bytes for HEN contract metadata parameter
    * HEN contract expects metadata as hex-encoded bytes
+   * Uses TextEncoder to properly handle multi-byte UTF-8 characters
    */
   private stringToHexBytes(str: string): string {
-    return str
-      .split('')
-      .reduce(
-        (hex, c) => (hex += c.charCodeAt(0).toString(16).padStart(2, '0')),
-        ''
-      );
+    return Array.from(new TextEncoder().encode(str))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
   }
 
   /**

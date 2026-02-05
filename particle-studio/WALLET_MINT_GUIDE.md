@@ -1,24 +1,26 @@
-# Wallet Connect and Teia Mint Integration
+# Wallet Connect and HEN (Hic Et Nunc) Mint Integration
 
-This document explains how to use the wallet connect and Teia minting features in Particle Painter.
+This document explains how to use the wallet connect and HEN minting features in Particle Painter.
 
 ## Features
 
 ### Wallet Connection
 
-The app now supports connecting Tezos wallets using the Beacon SDK, allowing users to:
+The app supports connecting Tezos wallets using the latest Beacon SDK v4.7.0 and Taquito v24.0.2, allowing users to:
 - Connect Temple Wallet, Kukai, or other Tezos wallets
-- Sign messages to prove wallet ownership
+- Secure wallet session management with connection stabilization
 - View wallet address and XTZ balance
 - Disconnect wallet when done
 
-### Mint to Teia
+### Mint to HEN (Hic Et Nunc)
 
-Once connected, users can mint their particle art as NFTs directly to the Tezos blockchain through Teia:
+Once connected, users can mint their particle art as NFTs directly to the Tezos blockchain through the original HEN contract:
+- Mints to the official HEN contract: `KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton`
 - Select export format (GIF or WebM)
 - Choose number of editions (1-10,000)
 - Add a description for the artwork
-- Export and prepare files for minting
+- Automatic IPFS upload via Pinata
+- On-chain minting with transaction confirmation
 
 ## How to Use
 
@@ -48,8 +50,11 @@ Before minting, ensure the rolling buffer is enabled:
 3. Click "Mint NFT"
 4. The app will:
    - Export your particle art from the buffer
-   - Prepare metadata
-   - Open Teia's minting interface with pre-filled data
+   - Upload the artwork to IPFS via Pinata
+   - Create and upload metadata to IPFS
+   - Send the mint transaction to the HEN contract
+   - Wait for blockchain confirmation
+   - Display the transaction hash and TzKT explorer link
 
 ### 4. Disconnect (Optional)
 
@@ -83,9 +88,9 @@ const ipfsUri = `ipfs://${cid}`
 ## Technical Details
 
 ### Dependencies
-- `@taquito/taquito`: Tezos blockchain interaction
-- `@taquito/beacon-wallet`: Wallet connection via Beacon SDK
-- `@airgap/beacon-sdk`: Beacon protocol implementation
+- `@taquito/taquito`: v24.0.2 - Tezos blockchain interaction (latest)
+- `@taquito/beacon-wallet`: v24.0.2 - Wallet connection via Beacon SDK (latest)
+- `@airgap/beacon-sdk`: v4.7.0 - Beacon protocol implementation (latest)
 - `vite-plugin-node-polyfills`: Browser compatibility for crypto libraries
 
 ### Architecture
@@ -93,6 +98,29 @@ const ipfsUri = `ipfs://${cid}`
 - State management uses Zustand store
 - Frame buffer system captures frames for quick export
 - Modular service architecture for easy customization
+
+### Security Best Practices
+The implementation follows security best practices:
+- **Connection Stabilization**: 500ms delay after wallet connection to ensure Beacon SDK transport layer is fully initialized
+- **Event-Based Account Management**: Uses ACTIVE_ACCOUNT_SET event subscription for proper account handling
+- **Session Management**: Tracks connection readiness to prevent race conditions during signing operations
+- **Timeout Handling**: 60-second timeout for wallet connection with proper cleanup
+- **Error Handling**: Comprehensive error messages for user actions (rejected transactions, insufficient balance, etc.)
+- **IPFS Security**: Files uploaded to Pinata with JWT authentication
+- **Transaction Validation**: Hard guards ensure operation hash is returned before considering mint successful
+- **Network Validation**: Explicit mainnet configuration prevents accidental testnet operations
+
+### HEN Contract Integration
+The minting function interacts with the official HEN (Hic Et Nunc) contract:
+- **Contract Address**: `KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton`
+- **Entrypoint**: `mint_OBJKT(address, nat, bytes, nat)`
+- **Parameters**:
+  - `address`: Creator's Tezos address
+  - `nat`: Number of editions to mint
+  - `bytes`: Hex-encoded IPFS metadata URI
+  - `nat`: Royalties in basis points (default: 1000 = 10%)
+- **Storage Limit**: 310 (optimized for HEN contract)
+- **Confirmation**: Polls TzKT API for transaction status (up to 5 minutes)
 
 ## Troubleshooting
 
