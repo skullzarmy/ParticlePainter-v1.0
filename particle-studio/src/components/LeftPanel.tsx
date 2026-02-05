@@ -8,6 +8,7 @@ import { AddLayerModal } from "./AddLayerModal";
 import { MaskEditor } from "./MaskEditor";
 import { MaskEraser } from "./MaskEraser";
 import { FlowPathEditor } from "./FlowPathEditor";
+import { AttractionPointsEditor } from "./AttractionPointsEditor";
 import { exportLayerSettings, importLayerSettings } from "../engine/LayerExporter";
 
 const typeOptions: { value: ParticleType; label: string; desc: string }[] = [
@@ -265,6 +266,14 @@ export function LeftPanel() {
                 onChange={(v) => setLayer(layer.id, { gravity: v })}
               />
               <SliderRow
+                label="Mass Jitter"
+                value={layer.massJitter ?? 0}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={(v) => setLayer(layer.id, { massJitter: v })}
+              />
+              <SliderRow
                 label="Velocity scale"
                 value={layer.speed}
                 min={0}
@@ -348,9 +357,12 @@ export function LeftPanel() {
 
             <div className="hr" />
 
-            {/* Attract */}
+            {/* Attract - Legacy single point (keep for backwards compatibility) */}
             <div className="section">
-              <h3 className="sectionTitle">Attract</h3>
+              <h3 className="sectionTitle">Attract (Legacy)</h3>
+              <div className="small" style={{ marginBottom: 8, opacity: 0.7 }}>
+                Single point attraction. Use Attraction Points below for advanced multi-point control.
+              </div>
               <SliderRow
                 label="Strength"
                 value={layer.attract}
@@ -358,6 +370,7 @@ export function LeftPanel() {
                 max={0.5}
                 step={0.01}
                 onChange={(v) => setLayer(layer.id, { attract: v })}
+                tooltip="Attraction strength to the single legacy point"
               />
               <SliderRow
                 label="Falloff"
@@ -366,6 +379,7 @@ export function LeftPanel() {
                 max={2}
                 step={0.1}
                 onChange={(v) => setLayer(layer.id, { attractFalloff: v })}
+                tooltip="0 = constant force, 2 = inverse square falloff"
               />
               <SliderRow
                 label="Point X"
@@ -388,6 +402,11 @@ export function LeftPanel() {
                 }
               />
             </div>
+
+            <div className="hr" />
+
+            {/* Multiple Attraction Points */}
+            <AttractionPointsEditor />
 
             <div className="hr" />
 
@@ -487,6 +506,8 @@ export function LeftPanel() {
                   <option value="brownian">Brownian</option>
                   <option value="followCurl">Follow Curl</option>
                   <option value="vortex">Vortex</option>
+                  <option value="evade">Evade</option>
+                  <option value="clusters">Clusters</option>
                 </select>
               </div>
               {layer.movementConfig?.pattern !== "still" && (
@@ -599,6 +620,49 @@ export function LeftPanel() {
               )}
               {layer.movementConfig?.pattern === "wave" && (
                 <>
+                  <div className="row" style={{ marginBottom: 8 }}>
+                    <span className="rowLabel">Direction</span>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button 
+                        className={`btn btnSm ${layer.movementConfig?.waveCardinalDirection === "east" ? "active" : ""}`}
+                        onClick={() => setLayer(layer.id, { 
+                          movementConfig: { ...layer.movementConfig, waveCardinalDirection: "east", waveDirection: 0 } 
+                        })}
+                        title="East (→)"
+                      >→</button>
+                      <button 
+                        className={`btn btnSm ${layer.movementConfig?.waveCardinalDirection === "north" ? "active" : ""}`}
+                        onClick={() => setLayer(layer.id, { 
+                          movementConfig: { ...layer.movementConfig, waveCardinalDirection: "north", waveDirection: 90 } 
+                        })}
+                        title="North (↑)"
+                      >↑</button>
+                      <button 
+                        className={`btn btnSm ${layer.movementConfig?.waveCardinalDirection === "west" ? "active" : ""}`}
+                        onClick={() => setLayer(layer.id, { 
+                          movementConfig: { ...layer.movementConfig, waveCardinalDirection: "west", waveDirection: 180 } 
+                        })}
+                        title="West (←)"
+                      >←</button>
+                      <button 
+                        className={`btn btnSm ${layer.movementConfig?.waveCardinalDirection === "south" ? "active" : ""}`}
+                        onClick={() => setLayer(layer.id, { 
+                          movementConfig: { ...layer.movementConfig, waveCardinalDirection: "south", waveDirection: 270 } 
+                        })}
+                        title="South (↓)"
+                      >↓</button>
+                    </div>
+                  </div>
+                  <SliderRow
+                    label={`Angle (${layer.movementConfig?.waveDirection ?? 0}°)`}
+                    value={layer.movementConfig?.waveDirection ?? 0}
+                    min={0}
+                    max={360}
+                    step={1}
+                    onChange={(v) =>
+                      setLayer(layer.id, { movementConfig: { ...layer.movementConfig, waveDirection: v } })
+                    }
+                  />
                   <SliderRow
                     label="Amplitude"
                     value={layer.movementConfig?.waveAmplitude ?? 0.1}
@@ -617,6 +681,76 @@ export function LeftPanel() {
                     step={0.1}
                     onChange={(v) =>
                       setLayer(layer.id, { movementConfig: { ...layer.movementConfig, waveFrequency: v } })
+                    }
+                  />
+                </>
+              )}
+              {layer.movementConfig?.pattern === "evade" && (
+                <>
+                  <SliderRow
+                    label="Evade Strength"
+                    value={layer.movementConfig?.evadeStrength ?? 0.3}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    onChange={(v) =>
+                      setLayer(layer.id, { movementConfig: { ...layer.movementConfig, evadeStrength: v } })
+                    }
+                  />
+                  <SliderRow
+                    label="Evade Radius"
+                    value={layer.movementConfig?.evadeRadius ?? 0.1}
+                    min={0.01}
+                    max={0.5}
+                    step={0.01}
+                    onChange={(v) =>
+                      setLayer(layer.id, { movementConfig: { ...layer.movementConfig, evadeRadius: v } })
+                    }
+                  />
+                </>
+              )}
+              {layer.movementConfig?.pattern === "clusters" && (
+                <>
+                  <SliderRow
+                    label="Cluster Strength"
+                    value={layer.movementConfig?.clusterStrength ?? 0.5}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    onChange={(v) =>
+                      setLayer(layer.id, { movementConfig: { ...layer.movementConfig, clusterStrength: v } })
+                    }
+                  />
+                  <SliderRow
+                    label="Break Threshold"
+                    value={layer.movementConfig?.clusterBreakThreshold ?? 0.7}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    onChange={(v) =>
+                      setLayer(layer.id, { movementConfig: { ...layer.movementConfig, clusterBreakThreshold: v } })
+                    }
+                  />
+                  <div className="small" style={{ marginTop: 8, marginBottom: 4 }}>Cluster by:</div>
+                  <SwitchRow
+                    label="Size"
+                    checked={layer.movementConfig?.clusterBySize ?? false}
+                    onCheckedChange={(v) =>
+                      setLayer(layer.id, { movementConfig: { ...layer.movementConfig, clusterBySize: v } })
+                    }
+                  />
+                  <SwitchRow
+                    label="Color"
+                    checked={layer.movementConfig?.clusterByColor ?? false}
+                    onCheckedChange={(v) =>
+                      setLayer(layer.id, { movementConfig: { ...layer.movementConfig, clusterByColor: v } })
+                    }
+                  />
+                  <SwitchRow
+                    label="Brightness"
+                    checked={layer.movementConfig?.clusterByBrightness ?? false}
+                    onCheckedChange={(v) =>
+                      setLayer(layer.id, { movementConfig: { ...layer.movementConfig, clusterByBrightness: v } })
                     }
                   />
                 </>
@@ -643,6 +777,9 @@ export function LeftPanel() {
                   <option value="respawn">Respawn inside</option>
                   <option value="bounce">Bounce</option>
                   <option value="wrap">Wrap</option>
+                  <option value="stick">Stick</option>
+                  <option value="destroy">Destroy</option>
+                  <option value="slowBounce">Slow Bounce</option>
                 </select>
               </div>
               <SliderRow
@@ -685,6 +822,12 @@ export function LeftPanel() {
                       Clear
                     </button>
                   </div>
+
+                  <SwitchRow
+                    label="Show mask (red overlay)"
+                    checked={layer.showMask ?? false}
+                    onCheckedChange={(b) => setLayer(layer.id, { showMask: b })}
+                  />
 
                   <div className="row">
                     <span className="rowLabel">Mask mode</span>

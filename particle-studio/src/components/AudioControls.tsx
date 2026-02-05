@@ -183,6 +183,15 @@ export function AudioControls({ onAnalysisUpdate }: Props) {
             onChange={(v) => setGlobal({ audioVolume: v })}
           />
           
+          <SliderRow
+            label="Reactivity Gain"
+            value={global.audioGain ?? 1}
+            min={0}
+            max={3}
+            step={0.01}
+            onChange={(v) => setGlobal({ audioGain: v })}
+          />
+          
           {/* Audio visualization */}
           {analysisData && isPlaying && (
             <div style={{ marginTop: 12 }}>

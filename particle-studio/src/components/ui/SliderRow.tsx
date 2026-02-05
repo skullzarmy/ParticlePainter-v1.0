@@ -7,11 +7,12 @@ export function SliderRow(props: {
   max: number;
   step: number;
   onChange: (v: number) => void;
+  tooltip?: string;
 }) {
-  const { label, value, min, max, step, onChange } = props;
+  const { label, value, min, max, step, onChange, tooltip } = props;
 
   return (
-    <div className="row">
+    <div className="row" title={tooltip}>
       <div style={{ display: "grid", gap: 6 }}>
         <div className="small">{label}</div>
         <Slider.Root

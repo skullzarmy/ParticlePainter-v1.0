@@ -1,73 +1,81 @@
-# React + TypeScript + Vite
+# Particle Studio 🎨✨
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A GPU-accelerated particle simulation and visual effects application built with React, TypeScript, and WebGL2.
 
-Currently, two official plugins are available:
+## Quick Start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Prerequisites
+- Node.js 18+ 
+- A WebGL2-capable browser (Chrome, Firefox, Safari, Edge)
 
-## React Compiler
+### Installation
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cd particle-studio
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Getting Started in 5 Steps
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. **Add a Layer** - Click "+ Add" in the left panel
+2. **Choose Type** - Select particle type (Sand, Dust, Sparks, Ink, etc.)
+3. **Adjust Physics** - Modify gravity, wind, jitter in the Forces section
+4. **Style Particles** - Change size, color, brightness in the right panel
+5. **Export** - Use the export bar to capture screenshots, GIFs, or videos
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Space` | Pause/Resume simulation |
+| `R` | Reset all particles |
+
+## Features
+
+### Movement Patterns
+- **Still** - Particles respond only to forces
+- **Linear** - Move in a set direction
+- **Wave** - Sinusoidal motion with cardinal direction controls
+- **Spiral** - Spiral toward/away from center
+- **Orbit** - Circular orbit around a point
+- **Vortex** - Spinning drain effect
+- **Brownian** - Random walk motion
+- **Evade** - Particles flee from each other
+- **Clusters** - Particles bind together in groups
+
+### Boundary Modes
+- Respawn, Bounce, Wrap, Stick, Destroy, Slow Bounce
+
+### Export Options
+- PNG Screenshots
+- Animated GIFs
+- WebM Video Recording
+- MP4 with Audio (audio-reactive)
+
+## Documentation
+
+For comprehensive documentation, see [USER_MANUAL.md](./USER_MANUAL.md)
+
+## Development
+
+```bash
+npm run dev      # Start dev server
+npm run build    # Production build
+npm run lint     # Run linter
+npm run preview  # Preview production build
 ```
+
+## Tech Stack
+
+- React 18 + TypeScript
+- WebGL2 for GPU-accelerated particles
+- Vite for fast development
+- Zustand for state management
+- Radix UI for accessible components
+
+## License
+
+MIT
