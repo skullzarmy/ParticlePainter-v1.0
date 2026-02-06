@@ -189,46 +189,29 @@ class TeiaService {
     
     let opHash: string;
     try {
-      // Get the HEN minter contract
-      // Try both wallet and contract APIs for robustness
+      // Get the HEN minter contract (following Teia's implementation pattern)
+      // This uses the same approach as the official Teia marketplace
       console.log(`Fetching contract at ${MINTER_CONTRACT}...`);
       
-      let contract: any;
-      try {
-        // First try the standard wallet API
-        contract = await tezos.wallet.at(MINTER_CONTRACT);
-      } catch (walletError) {
-        console.warn("wallet.at() failed, trying contract.at():", walletError);
-        // Fallback: try using contract API and then converting to wallet API
-        const contractProvider = await tezos.contract.at(MINTER_CONTRACT);
-        contract = await tezos.wallet.at(MINTER_CONTRACT);
-      }
+      const contract: any = await tezos.wallet.at(MINTER_CONTRACT);
       
       // Log available entrypoints for debugging
-      if (contract.methods) {
+      if (contract && contract.methods) {
         const availableEntrypoints = Object.keys(contract.methods);
         console.log("Available contract entrypoints:", availableEntrypoints);
         
         // Check for all possible mint-related entrypoints
-        const mintEntrypoints = availableEntrypoints.filter(ep => 
+        const mintEntrypoints = availableEntrypoints.filter((ep: string) => 
           ep.toLowerCase().includes('mint')
         );
         console.log("Mint-related entrypoints:", mintEntrypoints);
+        
+        // Warn if mint_OBJKT is not found (but don't fail - let the actual call fail with a clearer error)
+        if (!contract.methods.mint_OBJKT) {
+          console.warn("mint_OBJKT entrypoint not found in contract methods. Available:", availableEntrypoints.join(", "));
+        }
       } else {
-        console.error("Contract has no methods object!");
-      }
-      
-      // Verify the contract has the expected methods
-      // This prevents "Cannot read properties of undefined (reading 'mint_OBJKT')" error
-      if (!contract.methods || typeof contract.methods.mint_OBJKT !== 'function') {
-        // Provide detailed error message with available entrypoints
-        const availableEntrypoints = contract.methods ? Object.keys(contract.methods).join(", ") : "none";
-        throw new Error(
-          `Invalid minter contract: mint_OBJKT method not found. ` +
-          `Available entrypoints: ${availableEntrypoints}. ` +
-          `This may indicate a contract ABI issue or RPC connectivity problem. ` +
-          `Contract address: ${MINTER_CONTRACT}`
-        );
+        console.error("Contract methods not available!");
       }
       
       // Royalties default to 10% (1000 basis points)
@@ -240,14 +223,15 @@ class TeiaService {
       
       // Call the mint_OBJKT entrypoint with proper HEN parameter structure
       // Parameters: (creator_address, editions_amount, metadata_ipfs_bytes, royalties_bps)
-      const op = await contract.methods
-        .mint_OBJKT(
-          userAddress,
-          params.editions,
-          metadataBytes,
-          royalties
-        )
-        .send({ amount: 0, storageLimit: 310 });
+      // This follows the exact same pattern used by Teia community's official marketplace
+      const mint_batch = contract.methods.mint_OBJKT(
+        userAddress,
+        params.editions,
+        metadataBytes,
+        royalties
+      );
+      
+      const op = await mint_batch.send({ amount: 0, storageLimit: 310 });
       
       opHash = op.opHash;
       
