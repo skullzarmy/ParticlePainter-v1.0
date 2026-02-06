@@ -226,14 +226,14 @@ class TeiaService {
       // Call the mint_OBJKT entrypoint with proper HEN parameter structure
       // Parameters: (creator_address, editions_amount, metadata_ipfs_bytes, royalties_bps)
       // This follows the exact same pattern used by Teia community's official marketplace
-      const mint_batch = contract.methods.mint_OBJKT(
+      const mintBatch = contract.methods.mint_OBJKT(
         userAddress,
         params.editions,
         metadataBytes,
         royalties
       );
       
-      const op = await mint_batch.send({ amount: 0, storageLimit: 310 });
+      const op = await mintBatch.send({ amount: 0, storageLimit: 310 });
       
       opHash = op.opHash;
       
