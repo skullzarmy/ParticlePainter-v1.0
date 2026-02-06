@@ -192,12 +192,8 @@ class TeiaService {
       // TypeScript doesn't know the contract ABI, so we use type assertion
       const contract: any = await tezos.wallet.at(MINTER_CONTRACT);
       
-      // Verify the contract was loaded successfully
-      if (!contract) {
-        throw new Error("Failed to load minter contract. The contract address may be invalid.");
-      }
-      
       // Verify the contract has the expected methods
+      // This prevents "Cannot read properties of undefined (reading 'mint_OBJKT')" error
       if (!contract.methods || typeof contract.methods.mint_OBJKT !== 'function') {
         throw new Error("Invalid minter contract: mint_OBJKT method not found. This may indicate a contract ABI issue.");
       }
