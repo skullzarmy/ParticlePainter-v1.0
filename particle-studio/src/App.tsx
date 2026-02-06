@@ -264,60 +264,60 @@ export default function App() {
           audioBitsPerSecond: 192000, // Explicitly set audio bitrate
         });
 
-      recordedChunksRef.current = [];
+        recordedChunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          recordedChunksRef.current.push(e.data);
-        }
-      };
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            recordedChunksRef.current.push(e.data);
+          }
+        };
 
-      mediaRecorder.onstop = () => {
-        // Clean up audio destination connection if it was created
-        if (audioDestinationRef.current) {
-          try {
-            Tone.getDestination().disconnect(audioDestinationRef.current);
-            
-            // Restore original audio playback state
-            const audioEngine = getAudioEngine();
-            if (!audioWasPlayingRef.current && audioEngine.isPlaying()) {
-              audioEngine.pause();
+        mediaRecorder.onstop = () => {
+          // Clean up audio destination connection if it was created
+          if (audioDestinationRef.current) {
+            try {
+              Tone.getDestination().disconnect(audioDestinationRef.current);
+              
+              // Restore original audio playback state
+              const audioEngine = getAudioEngine();
+              if (!audioWasPlayingRef.current && audioEngine.isPlaying()) {
+                audioEngine.pause();
+              }
+              
+              audioDestinationRef.current = null;
+            } catch (err) {
+              console.warn("Error disconnecting audio destination:", err);
             }
-            
-            audioDestinationRef.current = null;
-          } catch (err) {
-            console.warn("Error disconnecting audio destination:", err);
           }
-        }
-        
-        const blob = new Blob(recordedChunksRef.current, { type: "video/webm" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `particle-studio-${Date.now()}-${fps}fps.webm`;
-        a.click();
-        URL.revokeObjectURL(url);
-        setIsRecording(false);
-        if (recordingTimeoutRef.current) {
-          window.clearTimeout(recordingTimeoutRef.current);
-          recordingTimeoutRef.current = null;
-        }
-      };
-
-      mediaRecorder.start(100); // collect data every 100ms
-      mediaRecorderRef.current = mediaRecorder;
-      setIsRecording(true);
-
-      if (durationSeconds > 0) {
-        if (recordingTimeoutRef.current) {
-          window.clearTimeout(recordingTimeoutRef.current);
-        }
-        recordingTimeoutRef.current = window.setTimeout(() => {
-          if (mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
+          
+          const blob = new Blob(recordedChunksRef.current, { type: "video/webm" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `particle-studio-${Date.now()}-${fps}fps.webm`;
+          a.click();
+          URL.revokeObjectURL(url);
+          setIsRecording(false);
+          if (recordingTimeoutRef.current) {
+            window.clearTimeout(recordingTimeoutRef.current);
+            recordingTimeoutRef.current = null;
           }
-        }, durationSeconds * 1000);
-      }
+        };
+
+        mediaRecorder.start(100); // collect data every 100ms
+        mediaRecorderRef.current = mediaRecorder;
+        setIsRecording(true);
+
+        if (durationSeconds > 0) {
+          if (recordingTimeoutRef.current) {
+            window.clearTimeout(recordingTimeoutRef.current);
+          }
+          recordingTimeoutRef.current = window.setTimeout(() => {
+            if (mediaRecorder.state === "recording") {
+              mediaRecorder.stop();
+            }
+          }, durationSeconds * 1000);
+        }
       } catch (err) {
         console.error("Failed to start recording:", err);
         setIsRecording(false);
