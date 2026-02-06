@@ -2,6 +2,8 @@ import { TezosToolkit } from "@taquito/taquito";
 
 // HEN (Hic Et Nunc) minter contract on Tezos mainnet
 // This is the V1 minter contract that has the mint_OBJKT entrypoint
+// Implementation follows the pattern used by Teia community's official marketplace
+// Reference: https://github.com/teia-community/teia-ui/blob/main/src/context/userStore.ts
 const MINTER_CONTRACT = "KT1Hkg5qeNhfwpKW4fXvq7HGZB9z2EnmCCA9";
 
 // TzKT explorer URL for viewing transactions

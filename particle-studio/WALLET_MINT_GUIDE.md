@@ -111,7 +111,7 @@ The implementation follows security best practices:
 - **Network Validation**: Explicit mainnet configuration prevents accidental testnet operations
 
 ### HEN Contract Integration
-The minting function interacts with the HEN V1 minter contract:
+The minting function interacts with the HEN V1 minter contract following the same pattern used by the official Teia community marketplace:
 - **Contract Address**: `KT1Hkg5qeNhfwpKW4fXvq7HGZB9z2EnmCCA9` (HEN V1 Minter)
 - **Entrypoint**: `mint_OBJKT(address, nat, bytes, nat)`
 - **Parameters**:
@@ -122,6 +122,7 @@ The minting function interacts with the HEN V1 minter contract:
 - **Storage Limit**: 310 (optimized for HEN contract)
 - **Confirmation**: Polls TzKT API for transaction status (up to 5 minutes)
 - **Note**: The minter contract calls the OBJKT token contract (`KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton`) internally
+- **Reference**: Implementation follows the proven pattern from [Teia community's official marketplace code](https://github.com/teia-community/teia-ui)
 
 ## Troubleshooting
 
