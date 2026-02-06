@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStudioStore } from "../state/store";
 import { getFrameBuffer } from "../engine/FrameBuffer";
 import { quickExportGif, quickExportWebM } from "../engine/QuickExport";
@@ -20,10 +20,33 @@ export function MintModal({ onClose }: MintModalProps) {
   const [progress, setProgress] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<MintSuccess | null>(null);
+  const [bufferStats, setBufferStats] = useState({ frameCount: 0, durationMs: 0, memoryEstimateMB: 0 });
 
   const global = useStudioStore((s) => s.global);
+  const setGlobal = useStudioStore((s) => s.setGlobal);
   const walletAddress = useStudioStore((s) => s.walletAddress);
   const gifWorkerUrl = new URL("gif.js/dist/gif.worker.js", import.meta.url).toString();
+
+  // Auto-enable buffer when modal opens
+  useEffect(() => {
+    if (!global.bufferEnabled) {
+      setGlobal({ bufferEnabled: true });
+    }
+  }, []);
+
+  // Update buffer stats periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const stats = getFrameBuffer().getStats();
+      setBufferStats({
+        frameCount: stats.frameCount,
+        durationMs: stats.durationMs,
+        memoryEstimateMB: stats.memoryEstimateMB,
+      });
+    }, 500);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const handleMint = async () => {
     if (!walletAddress) {
@@ -46,7 +69,7 @@ export function MintModal({ onClose }: MintModalProps) {
       const frames = buffer.getFrames();
 
       if (frames.length === 0) {
-        throw new Error("No frames in buffer. Enable buffer and wait for frames to accumulate.");
+        throw new Error("No frames captured yet. Please wait a few seconds for frames to accumulate in the buffer.");
       }
 
       // Export file based on selected type
@@ -132,6 +155,34 @@ export function MintModal({ onClose }: MintModalProps) {
 
           {!success ? (
             <>
+              {/* Buffer status indicator */}
+              <div
+                style={{
+                  marginBottom: 16,
+                  padding: 12,
+                  background: bufferStats.frameCount > 0 
+                    ? "rgba(34, 197, 94, 0.2)" 
+                    : "rgba(68, 136, 255, 0.2)",
+                  borderRadius: 4,
+                  fontSize: 12,
+                }}
+              >
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                  {bufferStats.frameCount > 0 
+                    ? "✓ Buffer Ready" 
+                    : "⏳ Capturing Frames..."}
+                </div>
+                <div style={{ opacity: 0.9 }}>
+                  {bufferStats.frameCount} frames captured 
+                  ({Math.round(bufferStats.durationMs / 1000)}s, {bufferStats.memoryEstimateMB}MB)
+                </div>
+                {bufferStats.frameCount === 0 && (
+                  <div style={{ marginTop: 4, opacity: 0.8 }}>
+                    Please wait a few seconds for frames to accumulate before minting.
+                  </div>
+                )}
+              </div>
+
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: "block", marginBottom: 8, fontSize: 14 }}>
                   File Type
@@ -233,8 +284,9 @@ export function MintModal({ onClose }: MintModalProps) {
                 <button
                   className="btn btnPrimary"
                   onClick={handleMint}
-                  disabled={isMinting}
+                  disabled={isMinting || bufferStats.frameCount === 0}
                   style={{ flex: 1 }}
+                  title={bufferStats.frameCount === 0 ? "Waiting for frames to accumulate..." : ""}
                 >
                   {isMinting ? "Minting..." : "Mint NFT"}
                 </button>
