@@ -6,12 +6,16 @@ export default defineConfig({
   plugins: [
     react(),
     nodePolyfills({
-      // Enable specific polyfills
+      // Enable comprehensive polyfills needed for Beacon SDK
+      // The Beacon SDK requires browser versions of Node.js built-in modules
       globals: {
         Buffer: true,
         global: true,
         process: true,
       },
+      // Enable all protocol polyfills to ensure BeaconEvent and other
+      // SDK enums/objects are properly initialized in browser environment
+      protocolImports: true,
     }),
   ],
   server: { 
@@ -26,7 +30,15 @@ export default defineConfig({
   },
   // Optimize dependencies with WASM
   optimizeDeps: {
-    exclude: ["@ffmpeg/ffmpeg", "@ffmpeg/util"]
+    exclude: ["@ffmpeg/ffmpeg", "@ffmpeg/util"],
+    // Include beacon SDK packages to ensure they're properly pre-bundled
+    // This helps avoid circular dependency and module initialization issues
+    include: [
+      "@airgap/beacon-sdk",
+      "@airgap/beacon-dapp",
+      "@taquito/beacon-wallet",
+      "@taquito/taquito",
+    ],
   },
   // Build configuration for better chunking
   build: {
