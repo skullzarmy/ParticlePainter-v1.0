@@ -210,9 +210,15 @@ export default function App() {
               const audioDestination = audioCtx.createMediaStreamDestination();
               audioDestinationRef.current = audioDestination;
               
-              // Connect the Tone.js master output to the recording destination
-              Tone.getDestination().connect(audioDestination);
-              console.log("[WebM Recording] Connected Tone.js destination to MediaStreamDestination");
+              // CRITICAL FIX: Connect to the PLAYER directly, not Tone.getDestination()
+              // The AudioEngine's player outputs directly, bypassing the main destination
+              const player = (audioEngine as any).player as Tone.Player | null;
+              if (player) {
+                player.connect(audioDestination);
+                console.log("[WebM Recording] Connected Player to MediaStreamDestination");
+              } else {
+                console.error("[WebM Recording] Player is null - cannot capture audio!");
+              }
               
               // Wait for audio tracks to appear with multiple retries
               // This is a known issue with MediaStreamAudioDestinationNode
