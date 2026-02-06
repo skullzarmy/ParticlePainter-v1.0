@@ -1,7 +1,8 @@
 import { TezosToolkit } from "@taquito/taquito";
 
 // HEN (Hic Et Nunc) minter contract on Tezos mainnet
-const MINTER_CONTRACT = "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton";
+// This is the V1 minter contract that has the mint_OBJKT entrypoint
+const MINTER_CONTRACT = "KT1Hkg5qeNhfwpKW4fXvq7HGZB9z2EnmCCA9";
 
 // TzKT explorer URL for viewing transactions
 const TZKT_EXPLORER_URL = "https://tzkt.io";
