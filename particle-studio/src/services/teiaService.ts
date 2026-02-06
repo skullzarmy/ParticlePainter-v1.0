@@ -190,13 +190,45 @@ class TeiaService {
     let opHash: string;
     try {
       // Get the HEN minter contract
-      // TypeScript doesn't know the contract ABI, so we use type assertion
-      const contract: any = await tezos.wallet.at(MINTER_CONTRACT);
+      // Try both wallet and contract APIs for robustness
+      console.log(`Fetching contract at ${MINTER_CONTRACT}...`);
+      
+      let contract: any;
+      try {
+        // First try the standard wallet API
+        contract = await tezos.wallet.at(MINTER_CONTRACT);
+      } catch (walletError) {
+        console.warn("wallet.at() failed, trying contract.at():", walletError);
+        // Fallback: try using contract API and then converting to wallet API
+        const contractProvider = await tezos.contract.at(MINTER_CONTRACT);
+        contract = await tezos.wallet.at(MINTER_CONTRACT);
+      }
+      
+      // Log available entrypoints for debugging
+      if (contract.methods) {
+        const availableEntrypoints = Object.keys(contract.methods);
+        console.log("Available contract entrypoints:", availableEntrypoints);
+        
+        // Check for all possible mint-related entrypoints
+        const mintEntrypoints = availableEntrypoints.filter(ep => 
+          ep.toLowerCase().includes('mint')
+        );
+        console.log("Mint-related entrypoints:", mintEntrypoints);
+      } else {
+        console.error("Contract has no methods object!");
+      }
       
       // Verify the contract has the expected methods
       // This prevents "Cannot read properties of undefined (reading 'mint_OBJKT')" error
       if (!contract.methods || typeof contract.methods.mint_OBJKT !== 'function') {
-        throw new Error("Invalid minter contract: mint_OBJKT method not found. This may indicate a contract ABI issue.");
+        // Provide detailed error message with available entrypoints
+        const availableEntrypoints = contract.methods ? Object.keys(contract.methods).join(", ") : "none";
+        throw new Error(
+          `Invalid minter contract: mint_OBJKT method not found. ` +
+          `Available entrypoints: ${availableEntrypoints}. ` +
+          `This may indicate a contract ABI issue or RPC connectivity problem. ` +
+          `Contract address: ${MINTER_CONTRACT}`
+        );
       }
       
       // Royalties default to 10% (1000 basis points)
