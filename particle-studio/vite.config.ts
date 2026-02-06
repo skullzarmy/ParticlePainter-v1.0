@@ -56,6 +56,12 @@ export default defineConfig({
           ]
         }
       }
-    }
+    },
+    // Prevent aggressive tree-shaking of Beacon SDK to avoid
+    // removing BeaconEvent enum and other critical exports
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true,
+    },
   }
 });
