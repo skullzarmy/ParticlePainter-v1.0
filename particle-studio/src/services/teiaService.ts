@@ -1,7 +1,7 @@
 import { TezosToolkit } from "@taquito/taquito";
 
-// HEN/Teia minter contract on Tezos mainnet
-const MINTER_CONTRACT = "KT1Hkg5qeNhfwpKW4fXvq7HGZB9z2EnmCCA9";
+// HEN (Hic Et Nunc) minter contract on Tezos mainnet
+const MINTER_CONTRACT = "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton";
 
 // TzKT explorer URL for viewing transactions
 const TZKT_EXPLORER_URL = "https://tzkt.io";
@@ -118,7 +118,18 @@ class TeiaService {
   }
 
   /**
-   * Mint NFT on Teia/HEN
+   * Convert string to hex bytes for HEN contract metadata parameter
+   * HEN contract expects metadata as hex-encoded bytes
+   * Uses TextEncoder to properly handle multi-byte UTF-8 characters
+   */
+  private stringToHexBytes(str: string): string {
+    return Array.from(new TextEncoder().encode(str))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  /**
+   * Mint NFT on HEN (Hic Et Nunc)
    * Performs a real on-chain transaction to the HEN minter contract
    * Returns the operation hash only after successful confirmation
    */
@@ -177,22 +188,27 @@ class TeiaService {
     
     let opHash: string;
     try {
-      // Get the minter contract
-      const contract = await tezos.wallet.at(MINTER_CONTRACT);
+      // Get the HEN minter contract
+      // TypeScript doesn't know the contract ABI, so we use type assertion
+      const contract: any = await tezos.wallet.at(MINTER_CONTRACT);
       
       // Royalties default to 10% (1000 basis points)
       const royalties = params.royalties ?? 1000;
       
-      // Call the mint entrypoint with proper parameter structure
-      // HEN minter expects: (address creator, nat amount, nat royalties, string metadata, list<string> tags)
-      const op = await contract.methodsObject
-        .mint_OBJKT({
-          address: userAddress,
-          amount: params.editions,
-          metadata: metadataUri,
-          royalties: royalties,
-        })
-        .send();
+      // Convert metadata URI to hex bytes as expected by HEN contract
+      // The HEN contract's mint_OBJKT expects: (address, nat, bytes, nat)
+      const metadataBytes = this.stringToHexBytes(metadataUri);
+      
+      // Call the mint_OBJKT entrypoint with proper HEN parameter structure
+      // Parameters: (creator_address, editions_amount, metadata_ipfs_bytes, royalties_bps)
+      const op = await contract.methods
+        .mint_OBJKT(
+          userAddress,
+          params.editions,
+          metadataBytes,
+          royalties
+        )
+        .send({ amount: 0, storageLimit: 310 });
       
       opHash = op.opHash;
       
