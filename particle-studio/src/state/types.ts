@@ -385,7 +385,8 @@ export type GlobalConfig = {
   paused: boolean;
   timeScale: number; // 0..2
   exposure: number; // 0..2
-  backgroundFade: number; // 0..1 (how much we fade previous frame)
+  backgroundFade: number; // 0..1 (how much we fade previous frame) - DEPRECATED, use clearRate
+  clearRate: number; // 0..1 (how much to clear canvas between frames, 0=never clear, 1=full clear)
   monochrome: boolean;
   invert: boolean;
   threshold: number; // 0..1

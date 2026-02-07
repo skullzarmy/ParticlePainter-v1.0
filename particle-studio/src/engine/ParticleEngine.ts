@@ -453,7 +453,9 @@ export class ParticleEngine {
     gl.bindTexture(gl.TEXTURE_2D, currTex);
     gl.uniform1i(gl.getUniformLocation(this.blitProg, "u_curr"), 1);
 
-    gl.uniform1f(gl.getUniformLocation(this.blitProg, "u_fade"), g.backgroundFade);
+    // Use clearRate: clearRate=1 means full clear (fade=1), clearRate=0 means never clear (fade=0)
+    // This is the inverse of the old backgroundFade behavior
+    gl.uniform1f(gl.getUniformLocation(this.blitProg, "u_fade"), g.clearRate);
     gl.uniform1f(gl.getUniformLocation(this.blitProg, "u_threshold"), g.threshold);
     gl.uniform1f(gl.getUniformLocation(this.blitProg, "u_thresholdSoft"), g.thresholdSoft);
     gl.uniform1f(gl.getUniformLocation(this.blitProg, "u_thresholdGain"), g.thresholdGain);

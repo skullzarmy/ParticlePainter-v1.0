@@ -85,79 +85,7 @@ export function RightPanel() {
       </div>
 
       <div className="panelBody">
-        {/* Global section */}
-        <div className="section">
-          <h3 className="sectionTitle">Global</h3>
-          <SliderRow
-            label="Time scale"
-            value={global.timeScale}
-            min={0}
-            max={2}
-            step={0.01}
-            onChange={(v) => setGlobal({ timeScale: v })}
-          />
-          <SliderRow
-            label="Exposure"
-            value={global.exposure}
-            min={0}
-            max={2}
-            step={0.01}
-            onChange={(v) => setGlobal({ exposure: v })}
-          />
-          <SliderRow
-            label="Background fade"
-            value={global.backgroundFade}
-            min={0}
-            max={0.35}
-            step={0.001}
-            onChange={(v) => setGlobal({ backgroundFade: v })}
-          />
-          <SliderRow
-            label="Threshold"
-            value={global.threshold}
-            min={0}
-            max={1}
-            step={0.001}
-            onChange={(v) => setGlobal({ threshold: v })}
-          />
-          <SliderRow
-            label="Threshold soft"
-            value={global.thresholdSoft}
-            min={0}
-            max={0.35}
-            step={0.001}
-            onChange={(v) => setGlobal({ thresholdSoft: v })}
-          />
-          <SliderRow
-            label="Threshold gain"
-            value={global.thresholdGain}
-            min={0}
-            max={3}
-            step={0.01}
-            onChange={(v) => setGlobal({ thresholdGain: v })}
-          />
-        </div>
-
-        <div className="hr" />
-
-        {/* Visual effects */}
-        <div className="section">
-          <h3 className="sectionTitle">Visual</h3>
-          <SwitchRow
-            label="Monochrome"
-            checked={global.monochrome}
-            onCheckedChange={(b) => setGlobal({ monochrome: b })}
-          />
-          <SwitchRow
-            label="Invert"
-            checked={global.invert}
-            onCheckedChange={(b) => setGlobal({ invert: b })}
-          />
-        </div>
-
-        <div className="hr" />
-
-        {/* Resolution settings */}
+        {/* Resolution settings - FIRST GLOBAL PARAMETER */}
         <div className="section">
           <h3 className="sectionTitle">Resolution</h3>
           <div className="row">
@@ -209,6 +137,78 @@ export function RightPanel() {
           <div className="small" style={{ marginTop: 8, opacity: 0.7 }}>
             Canvas/output resolution for all exports. Higher = more memory.
           </div>
+        </div>
+
+        <div className="hr" />
+
+        {/* Global section */}
+        <div className="section">
+          <h3 className="sectionTitle">Global</h3>
+          <SliderRow
+            label="Time scale"
+            value={global.timeScale}
+            min={0}
+            max={2}
+            step={0.01}
+            onChange={(v) => setGlobal({ timeScale: v })}
+          />
+          <SliderRow
+            label="Exposure"
+            value={global.exposure}
+            min={0}
+            max={2}
+            step={0.01}
+            onChange={(v) => setGlobal({ exposure: v })}
+          />
+          <SliderRow
+            label="Threshold"
+            value={global.threshold}
+            min={0}
+            max={1}
+            step={0.001}
+            onChange={(v) => setGlobal({ threshold: v })}
+          />
+          <SliderRow
+            label="Threshold soft"
+            value={global.thresholdSoft}
+            min={0}
+            max={0.35}
+            step={0.001}
+            onChange={(v) => setGlobal({ thresholdSoft: v })}
+          />
+          <SliderRow
+            label="Threshold gain"
+            value={global.thresholdGain}
+            min={0}
+            max={3}
+            step={0.01}
+            onChange={(v) => setGlobal({ thresholdGain: v })}
+          />
+          <SliderRow
+            label="Clear rate"
+            value={global.clearRate}
+            min={0}
+            max={1}
+            step={0.01}
+            onChange={(v) => setGlobal({ clearRate: v })}
+          />
+        </div>
+
+        <div className="hr" />
+
+        {/* Visual effects */}
+        <div className="section">
+          <h3 className="sectionTitle">Visual</h3>
+          <SwitchRow
+            label="Monochrome"
+            checked={global.monochrome}
+            onCheckedChange={(b) => setGlobal({ monochrome: b })}
+          />
+          <SwitchRow
+            label="Invert"
+            checked={global.invert}
+            onCheckedChange={(b) => setGlobal({ invert: b })}
+          />
         </div>
 
         <div className="hr" />
@@ -678,8 +678,7 @@ export function RightPanel() {
         <div className="hr" />
 
         <div className="small">
-          Tips: Use a high-contrast mask (black = inside). For the "gif look", keep fade
-          low (0.03–0.10) and raise curl + dither.
+          Tips: Use a high-contrast mask (black = inside). For persistent trails, use low clear rate (0.1-0.3 preserves most frames). For sharp visuals, keep clear rate high (0.8-1.0) and raise curl + dither.
         </div>
       </div>
     </div>
