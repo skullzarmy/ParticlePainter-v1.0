@@ -136,14 +136,6 @@ export function StudioControls() {
           onChange={(v) => setGlobal({ exposure: v })}
         />
         <SliderRow
-          label="Background fade"
-          value={global.backgroundFade}
-          min={0}
-          max={0.35}
-          step={0.001}
-          onChange={(v) => setGlobal({ backgroundFade: v })}
-        />
-        <SliderRow
           label="Threshold"
           value={global.threshold}
           min={0}
@@ -167,6 +159,14 @@ export function StudioControls() {
           step={0.01}
           onChange={(v) => setGlobal({ thresholdGain: v })}
         />
+        <SliderRow
+          label="Clear rate"
+          value={global.clearRate}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={(v) => setGlobal({ clearRate: v })}
+        />
 
         <SwitchRow
           label="Monochrome"
@@ -180,7 +180,7 @@ export function StudioControls() {
         />
 
         <div className="small" style={{ marginTop: 10 }}>
-          Tips: Use a high-contrast mask (black = inside). For the "gif look", keep fade low
+          Tips: Use a high-contrast mask (black = inside). For trails, lower clear rate (0.1-0.3).
           (0.03–0.10) and raise curl + dither.
         </div>
       </div>

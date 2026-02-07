@@ -309,7 +309,8 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     paused: false,
     timeScale: 1,
     exposure: 1,
-    backgroundFade: 0.08,
+    backgroundFade: 0.08, // DEPRECATED, use clearRate
+    clearRate: 1.0, // Default: full clear each frame (opposite of backgroundFade behavior)
     monochrome: true,
     invert: false,
     threshold: 0.2,

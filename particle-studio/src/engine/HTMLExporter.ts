@@ -1058,7 +1058,8 @@ class StandaloneParticleEngine {
   
   render() {
     const gl = this.gl;
-    const fade = this.global.backgroundFade ?? 0.08;
+    // Use clearRate (1=full clear, 0=never clear), inverse of old backgroundFade
+    const fade = this.global.clearRate ?? 1.0;
     
     // Clear with fade effect
     gl.clearColor(0, 0, 0, fade);
