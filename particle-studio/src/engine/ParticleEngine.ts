@@ -570,6 +570,31 @@ export class ParticleEngine {
     gl.uniform1f(gl.getUniformLocation(this.simProg, "u_attract"), l.attract);
     gl.uniform1f(gl.getUniformLocation(this.simProg, "u_attractFalloff"), l.attractFalloff ?? 1.0);
     gl.uniform2f(gl.getUniformLocation(this.simProg, "u_attractPoint"), l.attractPoint.x, l.attractPoint.y);
+    
+    // Multiple attraction points system
+    const attractionPoints = l.attractionPoints || [];
+    const enabledPoints = attractionPoints.filter(p => p.enabled);
+    const pointCount = Math.min(enabledPoints.length, 8); // Max 8 points
+    gl.uniform1i(gl.getUniformLocation(this.simProg, "u_attractionPointCount"), pointCount);
+    
+    for (let i = 0; i < pointCount; i++) {
+      const point = enabledPoints[i];
+      gl.uniform2f(gl.getUniformLocation(this.simProg, `u_attractionPositions[${i}]`), point.position.x, point.position.y);
+      gl.uniform1f(gl.getUniformLocation(this.simProg, `u_attractionStrengths[${i}]`), point.strength);
+      gl.uniform1f(gl.getUniformLocation(this.simProg, `u_attractionFalloffs[${i}]`), point.falloff);
+      
+      // Map type string to int: direct=0, spiral=1, blackhole=2, pulsing=3, magnetic=4
+      const typeMap: Record<string, number> = { direct: 0, spiral: 1, blackhole: 2, pulsing: 3, magnetic: 4 };
+      gl.uniform1i(gl.getUniformLocation(this.simProg, `u_attractionTypes[${i}]`), typeMap[point.type] ?? 0);
+      
+      // Map effect string to int: none=0, despawn=1, orbit=2, concentrate=3, transform=4, passToNext=5
+      const effectMap: Record<string, number> = { none: 0, despawn: 1, orbit: 2, concentrate: 3, transform: 4, passToNext: 5 };
+      gl.uniform1i(gl.getUniformLocation(this.simProg, `u_attractionEffects[${i}]`), effectMap[point.effect] ?? 0);
+      
+      gl.uniform1f(gl.getUniformLocation(this.simProg, `u_attractionPulseFreqs[${i}]`), point.pulseFrequency ?? 1.0);
+      gl.uniform1i(gl.getUniformLocation(this.simProg, `u_attractionEnabled[${i}]`), point.enabled ? 1 : 0);
+    }
+    
     // Wind: convert degrees to radians
     const windAngleRad = ((l.windAngle ?? 0) * Math.PI) / 180;
     gl.uniform1f(gl.getUniformLocation(this.simProg, "u_windAngle"), windAngleRad);
